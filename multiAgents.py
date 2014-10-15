@@ -16,6 +16,7 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
+import math
 
 from game import Agent
 
@@ -43,6 +44,7 @@ class ReflexAgent(Agent):
         legalMoves = gameState.getLegalActions()
 
         # Choose one of the best actions
+        #print "---"*10
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
         bestScore = max(scores)
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
@@ -67,15 +69,68 @@ class ReflexAgent(Agent):
         Print out these variables to see what you're getting, then combine them
         to create a masterful evaluation function.
         """
+        # Higher number is better
+        #print "-"*10
         # Useful information you can extract from a GameState (pacman.py)
-        successorGameState = currentGameState.generatePacmanSuccessor(action)
+        successorGameState = currentGameState.generatePacmanSuccessor(action) # game state after action
+       # print "Current game state : ", currentGameState
+        #print "Successor game state : ", successorGameState
+        #print "Successor game state: ", successorGameState
         newPos = successorGameState.getPacmanPosition()
+        #print "New Position", newPos
         newFood = successorGameState.getFood()
-        newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+#        print "New Food", newFood.asList() # T means food is present and F means not
+        minDist = 100000000
+        minFood = []
+        for food in newFood.asList():
+            dist = directDistance(newPos, food)
+            if dist < minDist:
+                minFood = [food] # clear and add new food in the list
+                minDist = dist
+            elif dist == minDist:  # food at same distance
+                minFood.append(food)
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        # pick a food and then consider the ghost
+#        print "Min Dist", minDist, "Min Food", minFood
+
+        newGhostStates = successorGameState.getGhostStates()
+        ghostDist = 0
+        for n in newGhostStates:
+            ghostDist += directDistance(n.configuration.pos, newPos)
+            #print n.configuration.getDirection()
+
+#            print dir(n.configuration)
+        #for n in newGhostStates:
+        #    print n
+
+        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        scaredTime = 0
+        for ghostTime in newScaredTimes:
+            scaredTime += ghostTime
+#        print "New Scared Times", dir(newScaredTimes)
+        
+
+        ## Heuristic ##
+        A = 1
+        B = 1
+        if ghostDist == 0:
+            finalValue = successorGameState.getScore()  + B * (1/minDist)
+        else:
+            finalValue = successorGameState.getScore()  - A * (1/ghostDist) + B * (1/(minDist))
+        '''
+        # powerPallet
+        top, right = currentGameState.getWalls().height-2,  currentGameState.getWalls().width-2
+        corners = ((1,1), (1,top), (right, 1), (right, top))
+        for corner in corners:
+            if successorGameState.hasFood(*corner) and corner is minFood[0]:
+                finalValue += 100
+
+        '''
+        return finalValue
+
+def directDistance(pointA, pointB):
+
+    return math.sqrt(abs((pointA[0]-pointB[0])**2 + (pointA[1] - pointB[1])**2))
 
 def scoreEvaluationFunction(currentGameState):
     """
