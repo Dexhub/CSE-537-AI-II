@@ -166,6 +166,22 @@ class MinimaxAgent(MultiAgentSearchAgent):
     """
       Your minimax agent (question 2)
     """
+    """
+      Returns the minimax action from the current gameState using self.depth
+      and self.evaluationFunction.
+ 
+      Here are some method calls that might be useful when implementing minimax.
+ 
+      gameState.getLegalActions(agentIndex):
+        Returns a list of legal actions for an agent
+        agentIndex=0 means Pacman, ghosts are >= 1
+ 
+      gameState.generateSuccessor(agentIndex, action):
+        Returns the successor game state after an agent takes an action
+ 
+      gameState.getNumAgents():
+        Returns the total number of agents in the game
+    """
 
     def maxMin(self, gameState, depth, action): # GameState, Depth, Action
         if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin():
@@ -183,6 +199,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 for action in actions:
                     succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
                     val = self.maxMin(succGameState, depth + 1, action)
+
                     #print "Action:", action, "Depth", depth+1, "Max - Value:", val
                     if maximum < val:
                         maximum = val
@@ -215,37 +232,96 @@ class MinimaxAgent(MultiAgentSearchAgent):
             #print "Action : ", action, "Height: 0", "Final Value : ", maxValue, "action:", maxAction
         #print "="*20
         return maxAction
-        """
-          Returns the minimax action from the current gameState using self.depth
-          and self.evaluationFunction.
-
-          Here are some method calls that might be useful when implementing minimax.
-
-          gameState.getLegalActions(agentIndex):
-            Returns a list of legal actions for an agent
-            agentIndex=0 means Pacman, ghosts are >= 1
-
-          gameState.generateSuccessor(agentIndex, action):
-            Returns the successor game state after an agent takes an action
-
-          gameState.getNumAgents():
-            Returns the total number of agents in the game
-        """
-        "*** YOUR CODE HERE ***"
-
-        util.raiseNotDefined()
         
 class AlphaBetaAgent(MultiAgentSearchAgent):
-    """
+    """ 
       Your minimax agent with alpha-beta pruning (question 3)
     """
+    """
+      Returns the minimax action using self.depth and self.evaluationFunction
+    """
+
+    '''
+    Alpha Beta can only happen between min and max layers but cannot happen 
+    between two min layers. Hence we have to take care of this case 
+    and simply perform operations normally for it.
+    '''
+
+    def alphaBetaPruning(self, gameState, depth, action, limit = 0): # GameState, Depth, Action
+        if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin():
+            #print "-"*10
+            print "*** ==> Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
+            #print "-"*10
+            return self.evaluationFunction(gameState)
+        else:
+            if depth % gameState.getNumAgents() == 0: # Pacman Agent --> Maximize function
+                maximum = limit
+                actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
+
+                print "Maximize Actions:", actions
+                if 'Stop' in actions:
+                    actions.remove('Stop')
+                
+                # Pruning is always enabled in Pacman Agent, as the next layer on top would always be a min layer
+                for action in actions:
+                    #if actions.index(action) is not 0:  Pruning can be done on these nodes
+                    print "==> MAXIMIZE : Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
+                    succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
+                    val = self.alphaBetaPruning(succGameState, depth + 1, action)
+            else:
+                minimum = limit # Ghosts --> Minimize function
+                actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
+                if 'Stop' in actions:
+                    actions.remove('Stop')
+                
+                # Only applicable if layer above it is a max layer, and that can be checked if layer-1 % numAgents == 0
+                if ((depth-1) % gameState.getNumAgents() == 0 ) :
+                    pruningEnabled = True
+                    print "Pruning Enabled: Current Depth", depth
+                else:
+                    pruningEnabled = False                
+                    print "Pruning Disabled: Current Depth", depth
+
+                print "Minimize functions Actions:", actions
+                print "~"*10
+                print "Calling alphabeta functions"
+                for action in actions:
+                    print "==> MINIMIZE: Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
+                    print "Successive game state:", gameState
+                    succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
+                    val = self.alphaBetaPruning(succGameState, depth + 1, action)
+                    print "Value after recursive computation : ", val, "at Depth : ", depth
+                    if actions.index(action) != 0 and pruningEnabled:
+                        #pruning logic
+                        pass
+                    else:
+                        #normal logic
+                        pass
 
     def getAction(self, gameState):
-        """
-          Returns the minimax action using self.depth and self.evaluationFunction
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        maxValue = float("-inf")
+        maxAction = None
+        actions = gameState.getLegalActions()
+        if 'Stop' in actions:
+            actions.remove('Stop')
+
+        print "-"*30
+        print "get Actions:", actions
+        print "Start Game State:", gameState
+        print "-"*30
+        print "Actions", actions
+        for action in actions:
+            succGameState = gameState.generateSuccessor(0, action)
+            print "For action", action, "Successor state:",succGameState
+            print "Calling successive pruning function"
+            maxMinValue = self.alphaBetaPruning( succGameState, 1, action) # Default value is 0
+            if maxValue < maxMinValue:
+                maxValue = maxMinValue
+                maxAction = action
+            #print "Action : ", action, "Height: 0", "Final Value : ", maxValue, "action:", maxAction
+        print "="*20
+        return maxAction
+
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
