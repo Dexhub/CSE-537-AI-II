@@ -167,7 +167,54 @@ class MinimaxAgent(MultiAgentSearchAgent):
       Your minimax agent (question 2)
     """
 
+    def maxMin(self, gameState, depth, action): # GameState, Depth, Action
+        if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin():
+            #print "-"*10
+            #print "Action:", action, "Depth", depth+1, "Max - Value:", self.evaluationFunction(gameState)
+            #print "-"*10
+#            print  "--> ", self.evaluationFunction(gameState)
+            return self.evaluationFunction(gameState)
+        else:
+            if depth % gameState.getNumAgents() == 0:
+                maximum = float("-inf")
+                actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
+                if 'Stop' in actions:
+                    actions.remove('Stop')
+                for action in actions:
+                    succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
+                    val = self.maxMin(succGameState, depth + 1, action)
+                    #print "Action:", action, "Depth", depth+1, "Max - Value:", val
+                    if maximum < val:
+                        maximum = val
+                return maximum
+            else:
+                minimum = float("inf")
+                actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
+                if 'Stop' in actions:
+                    actions.remove('Stop')
+                for action in actions:
+                    succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
+                    val = self.maxMin(succGameState, depth + 1, action)
+                    #print "Action:", action, "Depth", depth+1, "Min - Value:", val
+                    if minimum > val:
+                        minimum = val
+                return minimum
+
     def getAction(self, gameState):
+        maxValue = float("-inf")
+        maxAction = None
+        actions = gameState.getLegalActions()
+        if 'Stop' in actions:
+            actions.remove('Stop')
+        for action in actions:
+            succGameState = gameState.generateSuccessor(0, action)
+            maxMinValue = self.maxMin( succGameState, 1, action)
+            if maxValue < maxMinValue:
+                maxValue = maxMinValue
+                maxAction = action
+            #print "Action : ", action, "Height: 0", "Final Value : ", maxValue, "action:", maxAction
+        #print "="*20
+        return maxAction
         """
           Returns the minimax action from the current gameState using self.depth
           and self.evaluationFunction.
@@ -185,8 +232,9 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
 
+        util.raiseNotDefined()
+        
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
       Your minimax agent with alpha-beta pruning (question 3)
