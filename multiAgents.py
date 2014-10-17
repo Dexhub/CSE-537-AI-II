@@ -189,23 +189,25 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
     def alphaBetaPruning(self, gameState, depth, alpha, beta): # GameState, Depth, Action
         if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin(): # If depth has reached the search limit, apply static evaluation function to state and return result
 #            print "*** ==> Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
-            return self.evaluationFunction(gameState)
+            return (self.evaluationFunction(gameState), Directions.STOP)
         else:
-            actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
-            if 'Stop' in actions:
-                actions.remove('Stop')
+            #if 'Stop' in actions:
+            #    actions.remove('Stop')
             
             #### AGENT --> PACMAN ####
             ## MAX AGENT ##
             if depth % gameState.getNumAgents() == 0: # Pacman Agent --> Maximize function
-                v = float("-inf")
+                actions = gameState.getLegalActions(0)
+                value = float("-inf")
                 for action in actions:
-                    succGameState = gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
-                    v = max(v, self.alphaBetaPruning(succGameState, depth + 1, alpha, beta))
-                    if v > beta: 
-                        return v
-                    alpha = max(alpha, v)
-                return v
+                    temp= max(value, self.alphaBetaPruning(gameState.generateSuccessor(0, action), depth + 1, alpha, beta))
+                    if temp > value:
+                        final = action
+                        value = temp
+                    if value > beta: 
+                        return (value, final)
+                    alpha = max(alpha, value)
+                return (value, final)
             
             ##### AGENT ---> GHOST ####
             ## MIN AGENT ##
@@ -219,16 +221,24 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 '''
                 pruningEnabled = True
 
-                v = float("inf")
+                value = float("inf")
+                agentIndex = depth % gameState.getNumAgents() 
+                actions = gameState.getLegalActions(agentIndex)
                 for action in actions:
-                    succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
-                    v = min(v, self.alphaBetaPruning(succGameState, depth + 1, alpha, beta))
-                    if v < alpha and pruningEnabled:
-                        return v
-                    beta = min(beta, v)
-                return v
+                    temp = min(value, (self.alphaBetaPruning( gameState.generateSuccessor(0, action), depth + 1, alpha, beta) ))
+                    if temp <= value:
+                        value = temp
+                    if value < alpha:
+                        return value
+                    beta = min(beta, value)
+
+                return value 
 
     def getAction(self, gameState):
+        move = self.alphaBetaPruning(gameState, 0, float("-inf"), float("inf"))
+        return move[1]
+
+
         maxValue = float("-inf")
         maxAction = None
         actions = gameState.getLegalActions()
