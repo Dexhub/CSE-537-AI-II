@@ -247,56 +247,41 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
     and simply perform operations normally for it.
     '''
 
-    def alphaBetaPruning(self, gameState, depth, action, limit = 0): # GameState, Depth, Action
-        if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin():
-            #print "-"*10
-            print "*** ==> Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
-            #print "-"*10
+    def alphaBetaPruning(self, gameState, depth, alpha, beta): # GameState, Depth, Action
+        if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin(): # If depth has reached the search limit, apply static evaluation function to state and return result
+#            print "*** ==> Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
             return self.evaluationFunction(gameState)
         else:
+            actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
+            if 'Stop' in actions:
+                actions.remove('Stop')
+            
+            #### AGENT --> PACMAN ####
             if depth % gameState.getNumAgents() == 0: # Pacman Agent --> Maximize function
-                maximum = limit
-                actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
-
-                print "Maximize Actions:", actions
-                if 'Stop' in actions:
-                    actions.remove('Stop')
-                
-                # Pruning is always enabled in Pacman Agent, as the next layer on top would always be a min layer
                 for action in actions:
-                    #if actions.index(action) is not 0:  Pruning can be done on these nodes
-                    print "==> MAXIMIZE : Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
-                    succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
-                    val = self.alphaBetaPruning(succGameState, depth + 1, action)
+                    if alpha >= beta:
+                        return alpha
+                    succGameState = gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
+                    val = self.alphaBetaPruning(succGameState, depth + 1, alpha, beta)
+                    if val > alpha:
+                        alpha = val
+
+                return alpha
+
+            ##### AGENT ---> GHOST ####
             else:
-                minimum = limit # Ghosts --> Minimize function
-                actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
-                if 'Stop' in actions:
-                    actions.remove('Stop')
-                
                 # Only applicable if layer above it is a max layer, and that can be checked if layer-1 % numAgents == 0
                 if ((depth-1) % gameState.getNumAgents() == 0 ) :
                     pruningEnabled = True
-                    print "Pruning Enabled: Current Depth", depth
                 else:
                     pruningEnabled = False                
-                    print "Pruning Disabled: Current Depth", depth
 
-                print "Minimize functions Actions:", actions
-                print "~"*10
-                print "Calling alphabeta functions"
                 for action in actions:
-                    print "==> MINIMIZE: Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
-                    print "Successive game state:", gameState
+                    if alpha >= beta and pruningEnabled:
+                        return beta
                     succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
-                    val = self.alphaBetaPruning(succGameState, depth + 1, action)
-                    print "Value after recursive computation : ", val, "at Depth : ", depth
-                    if actions.index(action) != 0 and pruningEnabled:
-                        #pruning logic
-                        pass
-                    else:
-                        #normal logic
-                        pass
+                    val = self.alphaBetaPruning(succGameState, depth + 1, alpha, beta)
+                return beta
 
     def getAction(self, gameState):
         maxValue = float("-inf")
@@ -305,21 +290,12 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         if 'Stop' in actions:
             actions.remove('Stop')
 
-        print "-"*30
-        print "get Actions:", actions
-        print "Start Game State:", gameState
-        print "-"*30
-        print "Actions", actions
         for action in actions:
             succGameState = gameState.generateSuccessor(0, action)
-            print "For action", action, "Successor state:",succGameState
-            print "Calling successive pruning function"
-            maxMinValue = self.alphaBetaPruning( succGameState, 1, action) # Default value is 0
+            maxMinValue = self.alphaBetaPruning( succGameState, 1, float("-inf"), float("inf")) 
             if maxValue < maxMinValue:
                 maxValue = maxMinValue
                 maxAction = action
-            #print "Action : ", action, "Height: 0", "Final Value : ", maxValue, "action:", maxAction
-        print "="*20
         return maxAction
 
 
