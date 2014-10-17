@@ -185,74 +185,60 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
     between two min layers. Hence we have to take care of this case 
     and simply perform operations normally for it.
     '''
-
-    def alphaBetaPruning(self, gameState, depth, alpha, beta): # GameState, Depth, Action
-        if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin(): # If depth has reached the search limit, apply static evaluation function to state and return result
-#            print "*** ==> Action:", action, "Depth - Final Depth Level : ", depth+1, " Value:", self.evaluationFunction(gameState)
-            return (self.evaluationFunction(gameState), Directions.STOP)
-        else:
-            #if 'Stop' in actions:
-            #    actions.remove('Stop')
-            
-            #### AGENT --> PACMAN ####
-            ## MAX AGENT ##
-            if depth % gameState.getNumAgents() == 0: # Pacman Agent --> Maximize function
-                actions = gameState.getLegalActions(0)
-                value = float("-inf")
-                for action in actions:
-                    temp= max(value, self.alphaBetaPruning(gameState.generateSuccessor(0, action), depth + 1, alpha, beta))
-                    if temp > value:
-                        final = action
-                        value = temp
-                    if value > beta: 
-                        return (value, final)
-                    alpha = max(alpha, value)
-                return (value, final)
-            
-            ##### AGENT ---> GHOST ####
-            ## MIN AGENT ##
-            else:
-                # Only applicable if layer above it is a max layer, and that can be checked if layer-1 % numAgents == 0
-                '''
-                if ((depth-1) % gameState.getNumAgents() == 0 ) :
-                    pruningEnabled = True
-                else:
-                    pruningEnabled = False
-                '''
-                pruningEnabled = True
-
-                value = float("inf")
-                agentIndex = depth % gameState.getNumAgents() 
-                actions = gameState.getLegalActions(agentIndex)
-                for action in actions:
-                    temp = min(value, (self.alphaBetaPruning( gameState.generateSuccessor(0, action), depth + 1, alpha, beta) ))
-                    if temp <= value:
-                        value = temp
-                    if value < alpha:
-                        return value
-                    beta = min(beta, value)
-
-                return value 
-
     def getAction(self, gameState):
-        move = self.alphaBetaPruning(gameState, 0, float("-inf"), float("inf"))
+        """
+          Returns the minimax action using self.depth and self.evaluationFunction
+        """
+        "*** YOUR CODE HERE ***"
+        move = self.maximize(gameState, float("-inf"), float("inf"), self.depth)
         return move[1]
-
-
-        maxValue = float("-inf")
-        maxAction = None
-        actions = gameState.getLegalActions()
-        if 'Stop' in actions:
-            actions.remove('Stop')
-
-        for action in actions:
-            succGameState = gameState.generateSuccessor(0, action)
-            maxMinValue = self.alphaBetaPruning( succGameState, 1, float("-inf"), float("inf")) 
-            if maxValue < maxMinValue:
-                maxValue = maxMinValue
-                maxAction = action
-        return maxAction
-
+    
+    def maximize(self, gameState, alpha, beta, d):
+        # Check if we are at winning or losing point
+        if d == 0 or gameState.isWin() or gameState.isLose():
+          return (self.evaluationFunction(gameState), Directions.STOP)
+        value = float("-inf")
+        # For every legal action see get the maximum value from minimum values of all successors.
+        # Keep track of maximum value and that maximizing action and return these
+        # Here there is only one maximizing agent so, we need to do this only once for every legal actions
+        # unlike our multiple minimizing agents
+        for action in gameState.getLegalActions(0):
+          tmp = max(value, self.minimize(gameState.generateSuccessor(0, action), alpha, beta, d, 1))
+          if tmp > value:
+            final = action
+            value = tmp
+          if value > beta:
+            return (value, final)
+          alpha = max(alpha, value)
+        return (value, final)
+    
+    def minimize(self, gameState, alpha, beta, d, player):
+        # Check if we are at winning or losing point
+        if d == 0 or gameState.isWin() or gameState.isLose():
+          return self.evaluationFunction(gameState)
+        value = float("inf")
+        # For every legal action see get the minimum value from maximum values of all successors.
+        # Keep track of minimum value and that minimizing action and return these
+        # Here I am checking if we are at last minimizing agent i.e. ghost and if we are then
+        # maximize function will be called and if we are not at the last agent then minimizing function
+        # is recursed for next agent i.e. agent + 1 till we reach the last agent
+        if player == gameState.getNumAgents() - 1:
+          for action in gameState.getLegalActions(player):
+            tmp = min(value, self.maximize(gameState.generateSuccessor(player, action), alpha, beta, d - 1)[0])
+            if tmp <= value:
+              value = tmp
+            if value < alpha:
+              return value
+            beta = min(beta, value)
+        else:
+          for action in gameState.getLegalActions(player):
+            tmp = min(value, self.minimize(gameState.generateSuccessor(player, action), alpha, beta, d, player + 1))
+            if tmp <= value:
+              value = tmp
+            if value < alpha:
+              return value
+            beta = min(beta, value)
+        return value
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
