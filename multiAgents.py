@@ -60,27 +60,11 @@ class ReflexAgent(Agent):
 
         The evaluation function takes in the current and proposed successor
         GameStates (pacman.py) and returns a number, where higher numbers are better.
-
-        The code below extracts some useful information from the state, like the
-        remaining food (newFood) and Pacman position after moving (newPos).
-        newScaredTimes holds the number of moves that each ghost will remain
-        scared because of Pacman having eaten a power pellet.
-
-        Print out these variables to see what you're getting, then combine them
-        to create a masterful evaluation function.
         """
-        # Higher number is better
-        #print "-"*10
-        # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action) # game state after action
-       # print "Current game state : ", currentGameState
-        #print "Successor game state : ", successorGameState
-        #print "Successor game state: ", successorGameState
         newPos = successorGameState.getPacmanPosition()
-        #print "New Position", newPos
         newFood = successorGameState.getFood()
-#        print "New Food", newFood.asList() # T means food is present and F means not
-        minDist = 100000000
+        minDist = float("inf")
         minFood = []
         for food in newFood.asList():
             dist = directDistance(newPos, food)
@@ -89,43 +73,22 @@ class ReflexAgent(Agent):
                 minDist = dist
             elif dist == minDist:  # food at same distance
                 minFood.append(food)
-
-        # pick a food and then consider the ghost
-#        print "Min Dist", minDist, "Min Food", minFood
-
         newGhostStates = successorGameState.getGhostStates()
+        # Calculate total ghost distance
         ghostDist = 0
         for n in newGhostStates:
             ghostDist += directDistance(n.configuration.pos, newPos)
-            #print n.configuration.getDirection()
-
-#            print dir(n.configuration)
-        #for n in newGhostStates:
-        #    print n
-
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-        scaredTime = 0
-        for ghostTime in newScaredTimes:
-            scaredTime += ghostTime
-#        print "New Scared Times", dir(newScaredTimes)
-        
 
         ## Heuristic ##
-        A = 1
-        B = 1
+        ## Just to try different values ##
+        A = 1 # How scared pacman is from ghost
+        B = 1 # How attracted pacman is to food
+        ###############
         if ghostDist == 0:
             finalValue = successorGameState.getScore()  + B * (1/minDist)
         else:
             finalValue = successorGameState.getScore()  - A * (1/ghostDist) + B * (1/(minDist))
-        '''
-        # powerPallet
-        top, right = currentGameState.getWalls().height-2,  currentGameState.getWalls().width-2
-        corners = ((1,1), (1,top), (right, 1), (right, top))
-        for corner in corners:
-            if successorGameState.hasFood(*corner) and corner is minFood[0]:
-                finalValue += 100
-
-        '''
+        
         return finalValue
 
 def directDistance(pointA, pointB):
@@ -164,25 +127,9 @@ class MultiAgentSearchAgent(Agent):
 
 class MinimaxAgent(MultiAgentSearchAgent):
     """
-      Your minimax agent (question 2)
+      Minimax Agent (question 2)
     """
-    """
-      Returns the minimax action from the current gameState using self.depth
-      and self.evaluationFunction.
- 
-      Here are some method calls that might be useful when implementing minimax.
- 
-      gameState.getLegalActions(agentIndex):
-        Returns a list of legal actions for an agent
-        agentIndex=0 means Pacman, ghosts are >= 1
- 
-      gameState.generateSuccessor(agentIndex, action):
-        Returns the successor game state after an agent takes an action
- 
-      gameState.getNumAgents():
-        Returns the total number of agents in the game
-    """
-
+    # This function will be called recursively
     def maxMin(self, gameState, depth, action): # GameState, Depth, Action
         if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin():
             #print "-"*10
@@ -257,31 +204,37 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 actions.remove('Stop')
             
             #### AGENT --> PACMAN ####
+            ## MAX AGENT ##
             if depth % gameState.getNumAgents() == 0: # Pacman Agent --> Maximize function
+                v = float("-inf")
                 for action in actions:
-                    if alpha >= beta:
-                        return alpha
                     succGameState = gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
-                    val = self.alphaBetaPruning(succGameState, depth + 1, alpha, beta)
-                    if val > alpha:
-                        alpha = val
-
-                return alpha
-
+                    v = max(v, self.alphaBetaPruning(succGameState, depth + 1, alpha, beta))
+                    if v > beta: 
+                        return v
+                    alpha = max(alpha, v)
+                return v
+            
             ##### AGENT ---> GHOST ####
+            ## MIN AGENT ##
             else:
                 # Only applicable if layer above it is a max layer, and that can be checked if layer-1 % numAgents == 0
+                '''
                 if ((depth-1) % gameState.getNumAgents() == 0 ) :
                     pruningEnabled = True
                 else:
-                    pruningEnabled = False                
+                    pruningEnabled = False
+                '''
+                pruningEnabled = True
 
+                v = float("inf")
                 for action in actions:
-                    if alpha >= beta and pruningEnabled:
-                        return beta
                     succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
-                    val = self.alphaBetaPruning(succGameState, depth + 1, alpha, beta)
-                return beta
+                    v = min(v, self.alphaBetaPruning(succGameState, depth + 1, alpha, beta))
+                    if v < alpha and pruningEnabled:
+                        return v
+                    beta = min(beta, v)
+                return v
 
     def getAction(self, gameState):
         maxValue = float("-inf")
