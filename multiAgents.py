@@ -128,40 +128,32 @@ class MultiAgentSearchAgent(Agent):
 class MinimaxAgent(MultiAgentSearchAgent):
     """
       Minimax Agent (question 2)
+      We are considering total depth = depth from command line * total number of agents
     """
     # This function will be called recursively
     def maxMin(self, gameState, depth, action): # GameState, Depth, Action
+        # Terminal State
         if depth == self.depth * gameState.getNumAgents() or gameState.isLose() or gameState.isWin():
-            #print "-"*10
-            #print "Action:", action, "Depth", depth+1, "Max - Value:", self.evaluationFunction(gameState)
-            #print "-"*10
-#            print  "--> ", self.evaluationFunction(gameState)
             return self.evaluationFunction(gameState)
-        else:
-            if depth % gameState.getNumAgents() == 0:
+        else: # Not terminal state, hence call recursion
+            actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
+            if 'Stop' in actions:
+                actions.remove('Stop')
+            ###### PACMAN AGENT ###########
+            if depth % gameState.getNumAgents() == 0: # Check if it is pacman Agent
                 maximum = float("-inf")
-                actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
-                if 'Stop' in actions:
-                    actions.remove('Stop')
                 for action in actions:
                     succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
                     val = self.maxMin(succGameState, depth + 1, action)
-
-                    #print "Action:", action, "Depth", depth+1, "Max - Value:", val
-                    if maximum < val:
-                        maximum = val
+                    maximum = max(maximum, val)
                 return maximum
             else:
+            ###### GHOST AGENT ###########
                 minimum = float("inf")
-                actions = gameState.getLegalActions( (depth % gameState.getNumAgents()) )
-                if 'Stop' in actions:
-                    actions.remove('Stop')
                 for action in actions:
                     succGameState =gameState.generateSuccessor(depth % gameState.getNumAgents(), action)
                     val = self.maxMin(succGameState, depth + 1, action)
-                    #print "Action:", action, "Depth", depth+1, "Min - Value:", val
-                    if minimum > val:
-                        minimum = val
+                    minimum = min(minimum, val)
                 return minimum
 
     def getAction(self, gameState):
